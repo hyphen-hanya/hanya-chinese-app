@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hanya Chinese 启动图标 fallback: 蓝色圆角 + 白色"语"字意象(对话气泡+音符) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 蓝底(圆角方形由 launcher 裁剪, 这里用纯色方块) -->
+    <path
+        android:fillColor="#1A73E8"
+        android:pathData="M0,0h24v24h-24z" />
+    <!-- 对话气泡(白色) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,3c-4.97,0 -9,3.58 -9,8c0,1.8 0.63,3.46 1.69,4.78L4,20l3.4,-1.33C8.56,19.52 10.21,20 12,20c4.97,0 9,-3.58 9,-8S16.97,3 12,3z" />
+    <!-- 中文"语"字横辙(对话内黑色笔画, 用简单横线示意) -->
+    <path
+        android:fillColor="#1A73E8"
+        android:pathData="M7,9h10v1.5h-10z" />
+    <path
+        android:fillColor="#1A73E8"
+        android:pathData="M7,12.5h7v1.5h-7z" />
+</vector>
