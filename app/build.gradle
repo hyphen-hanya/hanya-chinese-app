@@ -1,4 +1,4 @@
-# Hanya Chinese App - app 模块 (Groovy DSL, 保守配置)
+// Hanya Chinese App - app 模块 (Groovy DSL, 保守配置)
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
