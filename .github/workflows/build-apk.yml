@@ -39,22 +39,39 @@ jobs:
             echo "No keystore secrets yet → building unsigned debug APK"
           fi
 
-      # 构建 debug APK (始终可装)
+      # 构建 debug APK (始终可装) — 不用 || true 掩盖失败(蓝本踩坑#7)
       - name: Build debug APK
         id: build_debug
+        continue-on-error: true
         run: |
-          gradle :app:assembleDebug --no-daemon --stacktrace > build_stdout.log 2>&1 || true
+          gradle :app:assembleDebug --no-daemon --stacktrace > build_stdout.log 2>&1
           echo "DEBUG_EXIT=$?" >> "$GITHUB_ENV"
-          echo "===== DEBUG RESULT ====="
-          grep -niE "BUILD SUCCESSFUL|BUILD FAILED|what went wrong|FAILURE|error:" build_stdout.log | head -20
+        
+      - name: Check debug APK
+        run: |
+          if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+            echo "::notice::DEBUG APK OK: $(ls -la app/build/outputs/apk/debug/app-debug.apk | awk '{print $5}') bytes"
+          else
+            echo "::error::DEBUG APK NOT FOUND - assembleDebug failed or wrong path"
+            grep -niE "what went wrong|error:|FAILURE|BUILD FAILED" build_stdout.log | head -10
+          fi
 
       # build.gradle 已根据是否有 keystore 决定是否签名 release
       - name: Build signed release APK
+        id: build_release
+        continue-on-error: true
         run: |
-          gradle :app:assembleRelease --no-daemon --stacktrace --info > release_stdout.log 2>&1 || true
+          gradle :app:assembleRelease --no-daemon --stacktrace --info > release_stdout.log 2>&1
           echo "RELEASE_EXIT=$?" >> "$GITHUB_ENV"
-          echo "===== RELEASE RESULT ====="
-          grep -niE "BUILD SUCCESSFUL|BUILD FAILED|what went wrong|caused by:|FAILURE|signed|SigningConfig" release_stdout.log | head -20
+
+      - name: Check release APK
+        run: |
+          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
+            echo "::notice::RELEASE APK OK: $(ls -la app/build/outputs/apk/release/app-release.apk | awk '{print $5}') bytes"
+          else
+            echo "::warning::RELEASE APK NOT FOUND (unsigned build likely, only debug expected on first CI run)"
+            grep -niE "what went wrong|error:|FAILURE|BUILD FAILED" release_stdout.log | head -10
+          fi
 
       - name: Locate APKs
         run: |
@@ -71,6 +88,7 @@ jobs:
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/apk/release/*.apk
           if-no-files-found: warn
+          retention-days: 30
         if: always()
 
       - name: Upload gradle log
