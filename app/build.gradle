@@ -1,12 +1,8 @@
 // Hanya Chinese App - app 模块 (Groovy DSL, 保守配置)
+// repositories 由根 settings.gradle 统一管理(FULL_ON_PROJECT_REPOS), 此处不再声明
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
-}
-
-repositories {
-    google()
-    mavenCentral()
 }
 
 android {
