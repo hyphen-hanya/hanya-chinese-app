@@ -52,8 +52,11 @@ jobs:
           if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
             echo "::notice::DEBUG APK OK: $(ls -la app/build/outputs/apk/debug/app-debug.apk | awk '{print $5}') bytes"
           else
-            echo "::error::DEBUG APK NOT FOUND - assembleDebug failed or wrong path"
-            grep -niE "what went wrong|error:|FAILURE|BUILD FAILED" build_stdout.log | head -10
+            echo "::error::DEBUG APK NOT FOUND - assembleDebug failed"
+            echo "===== build 错误关键行(喷成annotation可读) ====="
+            grep -niE "what went wrong|caused by|error:|FAILURE|BUILD FAILED|e: " build_stdout.log | head -40 | sed 's/^/::error::/' || true
+            echo "===== build_stdout.log 最后60行 ====="
+            tail -60 build_stdout.log
           fi
 
       # build.gradle 已根据是否有 keystore 决定是否签名 release
