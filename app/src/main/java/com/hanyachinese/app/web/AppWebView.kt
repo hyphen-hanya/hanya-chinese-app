@@ -32,6 +32,52 @@ class AppWebView : WebView {
     /** 页面加载进度回调(供 MainActivity 显示进度条) */
     var onProgressChanged: ((Int) -> Unit)? = null
 
+    /** ES2022 polyfill：老设备 System WebView(<v92) 不支持 .at()/toReversed()/replaceAll() 等新方法会红条报错，这里注入兼容实现。
+     *  新设备自身支持，polyfill 仅存在时才定义，零开销；App 内 WebView 生效，不影响网站其他访问者。 */
+    private val es2022Polyfill: String = """
+        (function () {
+            // Array.prototype.at / TypedArray.prototype.at
+            if (!Array.prototype.at) {
+                Object.defineProperty(Array.prototype, 'at', {
+                    value: function (n) {
+                        n = Math.trunc(n) || 0;
+                        if (n < 0) n += this.length;
+                        if (n < 0 || n >= this.length) return undefined;
+                        return this[n];
+                    },
+                    writable: true, configurable: true
+                });
+            }
+            // Object.hasOwn 增强
+            if (!Object.hasOwn) {
+                Object.hasOwn = function (obj, key) {
+                    return Object.prototype.hasOwnProperty.call(obj, key);
+                };
+            }
+            // String.prototype.replaceAll (V82+)
+            if (!String.prototype.replaceAll) {
+                String.prototype.replaceAll = function (search, replace) {
+                    return this.split(search).join(replace);
+                };
+            }
+            // Array.prototype.findLast (ES2023, 低版本WebView常见)
+            if (!Array.prototype.findLast) {
+                Array.prototype.findLast = function (pred) {
+                    for (var i = this.length - 1; i >= 0; i--) {
+                        if (pred(this[i], i, this)) return this[i];
+                    }
+                    return undefined;
+                };
+            }
+            // Array.prototype.toReversed (ES2023 只读方法)
+            if (!Array.prototype.toReversed) {
+                Array.prototype.toReversed = function () {
+                    return this.slice().reverse();
+                };
+            }
+        })();
+    """.trimIndent()
+
     // 标准 WebView 构造(供 XML inflate 与代码 new)
     constructor(context: Context) : super(context) { setup() }
     constructor(context: Context, attrs: AttributeSet?) : super(context, attrs) { setup() }
@@ -83,6 +129,12 @@ class AppWebView : WebView {
 
     private fun configureWebViewClient() {
         webViewClient = object : WebViewClient() {
+            // 抢占注入 ES2022 polyfill：必须在页面 JS 执行前完成，否则老设备红条先出现
+            override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                super.onPageStarted(view, url, favicon)
+                view?.evaluateJavascript(es2022Polyfill, null)
+            }
+
             override fun shouldOverrideUrlLoading(
                 view: WebView?,
                 request: WebResourceRequest?
