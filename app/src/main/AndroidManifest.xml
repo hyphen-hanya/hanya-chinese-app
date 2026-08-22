@@ -9,6 +9,9 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
+    <!-- 显式声明麦克风硬件依赖(防部分国产ROM在WebView层静默关闭音轨) -->
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
     <!-- 通知/震动(学习提醒等) -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

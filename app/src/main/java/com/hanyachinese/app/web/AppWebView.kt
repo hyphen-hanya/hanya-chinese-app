@@ -1,7 +1,9 @@
 package com.hanyachinese.app.web
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.util.AttributeSet
 import android.webkit.CookieManager
@@ -12,6 +14,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.core.content.ContextCompat
 
 /**
  * Hanya Chinese 统一 WebView 封装
@@ -97,7 +100,8 @@ class AppWebView : WebView {
         settings.domStorageEnabled = true
         settings.allowFileAccess = false
         settings.mediaPlaybackRequiresUserGesture = false // 关键: 允许 JS 自动播放 TTS/听力
-        settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+        // 防止录音blob上传/WebSocket被静默拦截: 兼容模式而非禁止(国产ROM在WebView层易静默关音轨)
+        settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
         settings.cacheMode = WebSettings.LOAD_DEFAULT
         settings.databaseEnabled = true
         settings.setSupportZoom(false)
@@ -115,14 +119,32 @@ class AppWebView : WebView {
 
             override fun onPermissionRequest(request: PermissionRequest) {
                 val resources = request.resources
-                // 授予音频捕获(麦克风, 用于跟读发音). 只对 hanyabuy 域授予, 其他拒绝
-                if (resources.isNotEmpty() &&
-                    request.origin.host?.contains("hanyabuy", ignoreCase = true) == true
-                ) {
-                    request.grant(resources)
+                val isAudio = resources.orEmpty().contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)
+                if (isAudio) {
+                    // 音频请求: 先确认系统已授权RECORD_AUDIO, 再回主线程grant
+                    val granted = context?.let {
+                        ContextCompat.checkSelfPermission(
+                            it, Manifest.permission.RECORD_AUDIO
+                        ) == PackageManager.PERMISSION_GRANTED
+                    } == true
+                    if (granted) {
+                        post { request.grant(resources) }
+                    } else {
+                        post {
+                            try { request.deny() } catch (_: Exception) {}
+                        }
+                        // 让 MainActivity 预请求系统权限(页面getUserMedia触发时App层面已授权则此处会grant)
+                        // 若系统未授权, 这里deny后页面会提示, 且MainActivity.onResume可再主动请求
+                    }
                 } else {
-                    request.deny()
+                    post {
+                        try { request.grant(resources) } catch (_: Exception) {}
+                    }
                 }
+            }
+
+            override fun onPermissionRequestCanceled(request: PermissionRequest?) {
+                super.onPermissionRequestCanceled(request)
             }
         }
     }

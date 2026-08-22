@@ -35,9 +35,14 @@ class MainActivity : AppCompatActivity() {
 
     private val HOME_URL = "https://lang.hanyabuy.com"
 
-    // 麦克风运行时权限(只进语音/跟读时预请求一次, 由页面 getUserMedia 触发)
+    // 麦克风运行时权限(跟读/语音对话需要; 授权后重新载入页面让getUserMedia生效)
     private val micPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* 授权与否前端有兜底 */ }
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                // 授权后刷新页面, 触发网页 getUserMedia 重新请求 → AppWebView.onPermissionRequest 会 grant
+                webView?.reload()
+            }
+        }
 
     private val onBackPressedCallback = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
@@ -53,6 +58,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // 启动即主动请求麦克风权限(Android 13+ 更稳, 不等页面触发; 授权后reload让getUserMedia生效)
+        requestMicIfPresent()
 
         webView = findViewById<AppWebView>(R.id.web_view)
         progressBar = findViewById<ProgressBar>(R.id.progress_bar)
