@@ -100,8 +100,9 @@ class AppWebView : WebView {
         settings.domStorageEnabled = true
         settings.allowFileAccess = false
         settings.mediaPlaybackRequiresUserGesture = false // 关键: 允许 JS 自动播放 TTS/听力
-        // 防止录音blob上传/WebSocket被静默拦截: 兼容模式而非禁止(国产ROM在WebView层易静默关音轨)
-        settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+        // 防止录音blob上传/WebSocket被静默拦截: 华为/国产ROM在WebView层易静默关音轨,
+        // FD建议用 ALWAYS_ALLOW 而非 COMPATIBILITY 彻底规避混合内容检查对本地回环音频的误伤
+        settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         settings.cacheMode = WebSettings.LOAD_DEFAULT
         settings.databaseEnabled = true
         settings.setSupportZoom(false)
