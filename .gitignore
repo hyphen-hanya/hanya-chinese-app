@@ -18,3 +18,4 @@ captures/
 # Misc
 *.log
 .DS_Store
+dist/
